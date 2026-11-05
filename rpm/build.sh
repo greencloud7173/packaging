@@ -175,7 +175,7 @@ control_packages() {
 # CMake options that go beyond the common ones, from each project's rules.
 declare -A CMAKE_EXTRA=(
   [cutefish-compositor]="-DCUTEFISH_ENABLE_XWAYLAND=ON"
-  [cutefish-webkit]="-DPORT=Cutefish -DCMAKE_BUILD_TYPE=Release -GNinja"
+  [cutefish-webkit]="-DPORT=Cutefish -DCMAKE_BUILD_TYPE=Release"
 )
 
 # A project is native when its Debian source format says so, which is how the
@@ -243,7 +243,7 @@ write_spec() {
     if [[ "$project" == cutefish-webkit ]]; then
       # With debug information and LTO the build outgrows the runners' memory
       # and disk, as it does on Debian.
-      echo "%global optflags %(echo %{optflags} | sed 's/-g//g')"
+      echo "%global optflags %(echo %{optflags} | sed -e 's/ -g / /g' -e 's/^-g //' -e 's/ -g\$//')"
       echo "%global _lto_cflags %{nil}"
     fi
     echo
