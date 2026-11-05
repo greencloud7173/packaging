@@ -1,0 +1,26 @@
+# The SPDX licence of each package, from the License field of its
+# debian/copyright. The projects whose copyright names none are under the same
+# BSD-3-Clause as the rest of Cutefish; the wallpapers are Unsplash photos,
+# whose licence has no SPDX identifier.
+cutefish-toolkit BSD-3-Clause
+cutefish-framework BSD-3-Clause
+cutefish-qt-plugins BSD-3-Clause
+cutefish-icon-theme GPL-3.0-or-later
+cutefish-wallpapers LicenseRef-Unsplash
+cutefish-plymouth-theme BSD-3-Clause
+cutefish-core BSD-3-Clause
+cutefish-dm BSD-3-Clause
+cutefish-filemanager BSD-3-Clause
+cutefish-terminal BSD-3-Clause
+xdg-desktop-portal-cutefish BSD-3-Clause
+cutefish-settings BSD-3-Clause
+cutefish-system-monitor BSD-3-Clause
+cutefish-text-editor BSD-3-Clause
+cutefish-video-player BSD-3-Clause
+cutefish-calendar BSD-3-Clause
+cutefish-calculator BSD-3-Clause
+cutefish-compositor BSD-3-Clause
+cutefish-computer-use BSD-3-Clause
+cutefish-installer BSD-3-Clause
+cutefish-webkit BSD-2-Clause AND LGPL-2.0-or-later
+cutefish-desktop BSD-3-Clause

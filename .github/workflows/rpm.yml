@@ -1,0 +1,311 @@
+name: Build RPM packages
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - iso/**
+      - web/**
+      - .github/workflows/iso.yml
+      - .github/workflows/pages.yml
+  schedule:
+    - cron: "0 20 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rpm
+  cancel-in-progress: false
+
+env:
+  RELEASE: "44"
+
+jobs:
+  changes:
+    name: Changes
+    runs-on: ubuntu-24.04
+    outputs:
+      commits: ${{ steps.commits.outputs.commits }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Every architecture builds the same commits, the ones listed here.
+      - name: List the commits
+        id: commits
+        run: |
+          echo "packaging $GITHUB_SHA" > commits
+          while read -r project _; do
+            [[ -z "$project" || "$project" == \#* ]] && continue
+            grep -qs native "debian/$project/debian/source/format" && continue
+            echo "$project $(git ls-remote "https://github.com/cutefishos/$project.git" HEAD | cut -f 1)" >> commits
+          done < versions
+          cat commits
+          {
+            echo "commits<<EOF"
+            cat commits
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+  # The packages are built inside Fedora itself, so that the macros, the
+  # compiler flags and the dependencies are the ones the packages will meet,
+  # and each one is installed before the packages that need it are built,
+  # because Cutefish's own packages are not in Fedora's repositories.
+  build:
+    name: Fedora 44 ${{ matrix.arch }}
+    needs: changes
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 300
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
+          df -h /
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          path: packaging
+
+      - name: Check out the projects
+        env:
+          COMMITS: ${{ needs.changes.outputs.commits }}
+        run: |
+          echo "$COMMITS" | while read -r project commit; do
+            [[ "$project" == packaging || "$project" == cutefish-webkit ]] && continue
+            git init --quiet "$project"
+            git -C "$project" fetch --quiet --depth 1 "https://github.com/cutefishos/$project.git" "$commit"
+            git -C "$project" checkout --quiet --detach FETCH_HEAD
+          done
+
+      # Skia's GN binary is built for the runner's architecture.
+      - name: Cache Skia
+        uses: actions/cache@v6
+        with:
+          path: cutefish-toolkit/third_party/skia
+          key: skia-${{ matrix.arch }}-${{ hashFiles('cutefish-toolkit/scripts/fetch-skia.sh') }}
+
+      - name: Fetch Skia
+        run: cutefish-toolkit/scripts/fetch-skia.sh
+
+      - name: Build
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" \
+            -w /work \
+            "fedora:$RELEASE" \
+            bash -euo pipefail -c '
+              dnf install -y --setopt=install_weak_deps=False \
+                ca-certificates \
+                git \
+                gn \
+                gzip \
+                redhat-rpm-config \
+                rpm-build \
+                tar
+
+              git config --global --add safe.directory "*"
+              packaging/rpm/build.sh --install --snapshot --skip cutefish-webkit
+            '
+          sudo chown -R "$(id -u):$(id -g)" packaging/out
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: rpm-${{ matrix.arch }}
+          path: packaging/out/rpm/RPMS/**
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: logs-${{ matrix.arch }}
+          path: packaging/out/rpm/logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # WebKit takes hours to build, so it has a job of its own and is rebuilt
+  # only when its commit or its packaging changes.
+  webkit:
+    name: WebKit ${{ matrix.arch }}
+    needs: changes
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          path: packaging
+
+      - name: Find the commit
+        id: commit
+        env:
+          COMMITS: ${{ needs.changes.outputs.commits }}
+        run: echo "commit=$(echo "$COMMITS" | awk '$1 == "cutefish-webkit" { print $2 }')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the packages
+        id: cache
+        uses: actions/cache@v6
+        with:
+          path: packaging/out/rpm
+          key: webkit-rpm-${{ matrix.arch }}-${{ steps.commit.outputs.commit }}-${{ hashFiles('packaging/rpm/**', 'packaging/debian/cutefish-webkit/**') }}
+
+      - name: Free disk space
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
+          df -h /
+
+      - name: Check out WebKit
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          COMMIT: ${{ steps.commit.outputs.commit }}
+        run: |
+          git init --quiet cutefish-webkit
+          git -C cutefish-webkit fetch --quiet --depth 1 https://github.com/cutefishos/cutefish-webkit.git "$COMMIT"
+          git -C cutefish-webkit checkout --quiet --detach FETCH_HEAD
+
+      - name: Build
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" \
+            -w /work \
+            "fedora:$RELEASE" \
+            bash -euo pipefail -c '
+              dnf install -y --setopt=install_weak_deps=False \
+                ca-certificates \
+                git \
+                gn \
+                gzip \
+                redhat-rpm-config \
+                rpm-build \
+                tar
+
+              git config --global --add safe.directory "*"
+              packaging/rpm/build.sh --deps --snapshot cutefish-webkit
+            '
+          sudo chown -R "$(id -u):$(id -g)" packaging/out
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: webkit-rpm-${{ matrix.arch }}
+          path: packaging/out/rpm/RPMS/**
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: webkit-logs-${{ matrix.arch }}
+          path: packaging/out/rpm/logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # A clean Fedora installs the whole desktop from the new packages, so that a
+  # dependency that Fedora does not have or a broken script fails the run
+  # rather than the user.
+  install:
+    name: Install ${{ matrix.arch }}
+    needs: [build, webkit]
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v8
+        with:
+          pattern: rpm-${{ matrix.arch }}
+          path: out
+
+      - name: Download WebKit
+        uses: actions/download-artifact@v8
+        with:
+          pattern: webkit-rpm-${{ matrix.arch }}
+          path: out
+
+      - name: Install
+        run: |
+          ls -l out/*/*/*.rpm
+          docker run --rm \
+            -v "$PWD/out:/rpms:ro" \
+            "fedora:$RELEASE" \
+            bash -euo pipefail -c '
+              dnf install -y --nogpgcheck --setopt=install_weak_deps=False /rpms/*/*/*.rpm
+              rpm -qa "cutefish*" "xdg-desktop-portal-cutefish" | sort
+            '
+
+  checksums:
+    name: Checksums
+    needs: [build, webkit]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v8
+        with:
+          pattern: rpm-*
+          path: out
+
+      - name: Download WebKit
+        uses: actions/download-artifact@v8
+        with:
+          pattern: webkit-rpm-*
+          path: out
+
+      - name: Write the checksums
+        run: |
+          (cd out && find . -name '*.rpm' | sort | xargs -r sha256sum) > SHA256SUMS
+          cat SHA256SUMS
+          {
+            echo "## SHA-256"
+            echo '```'
+            cat SHA256SUMS
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Attest
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-checksums: SHA256SUMS
+
+      - name: Upload checksums
+        uses: actions/upload-artifact@v7
+        with:
+          name: cutefish-rpm-44
+          path: SHA256SUMS
+          if-no-files-found: error
+          retention-days: 7

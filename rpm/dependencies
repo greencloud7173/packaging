@@ -1,0 +1,155 @@
+# Debian package name -> Fedora package name, for the names that differ. A
+# dash drops the dependency. A name that is not listed is used as it is, which
+# covers the Cutefish packages themselves and the ones Fedora names the same
+# way.
+#
+# rpm/build.sh translates both Build-Depends and Depends with this file.
+# Anything the build cannot find in Fedora 44 fails loudly at configure time,
+# so a wrong line here costs a build rather than a bad package.
+
+# Debian's build helpers have no counterpart; rpmbuild replaces them.
+debhelper-compat -
+dh-cargo -
+dh-python -
+dbus-daemon dbus-tools
+dpkg-dev -
+equivs -
+devscripts -
+debhelper -
+
+# Build tools.
+cmake cmake
+ninja-build ninja-build
+generate-ninja gn
+pkg-config pkgconf-pkg-config
+python3 python3
+perl perl
+ruby ruby
+gperf gperf
+unifdef unifdef
+gtk-update-icon-cache gtk-update-icon-cache
+clang clang
+
+# Rust. Fedora has no librust-*-dev packages; the crates come from crates.io.
+cargo cargo
+rustc rust
+
+# Wayland, graphics and input.
+libwayland-dev wayland-devel
+libwayland-bin wayland-devel
+wayland-protocols wayland-protocols-devel
+libegl-dev mesa-libEGL-devel
+libgles-dev mesa-libGLES-devel
+libxkbcommon-dev libxkbcommon-devel
+libdrm-dev libdrm-devel
+libgbm-dev mesa-libgbm-devel
+libseat-dev libseat-devel
+libinput-dev libinput-devel
+libudev-dev systemd-devel
+libsystemd-dev systemd-devel
+libxcb1-dev libxcb-devel
+libxcb-composite0-dev libxcb-devel
+libxcb-xfixes0-dev libxcb-devel
+libxcb-shape0-dev libxcb-devel
+libxcb-sync0-dev libxcb-devel
+libxcb-sync-dev libxcb-devel
+libxcursor-dev libXcursor-devel
+
+# Text, fonts and images.
+libfontconfig-dev fontconfig-devel
+libfreetype-dev freetype-devel
+libharfbuzz-dev harfbuzz-devel
+libicu-dev libicu-devel
+libpcre2-dev pcre2-devel
+libpng-dev libpng-devel
+libjpeg-dev libjpeg-turbo-devel
+zlib1g-dev zlib-devel
+libexpat1-dev expat-devel
+libwebp-dev libwebp-devel
+libtiff-dev libtiff-devel
+libheif-dev libheif-devel
+libjxl-dev libjxl-devel
+librsvg2-dev librsvg2-devel
+
+# Audio and video.
+libpipewire-0.3-dev pipewire-devel
+libspa-0.2-dev pipewire-devel
+libavcodec-dev ffmpeg-free-devel
+libavformat-dev ffmpeg-free-devel
+libavutil-dev ffmpeg-free-devel
+libswscale-dev ffmpeg-free-devel
+libva-dev libva-devel
+libmpv-dev mpv-libs-devel
+
+# Other libraries.
+libarchive-dev libarchive-devel
+libbz2-dev bzip2-devel
+libfuse3-dev fuse3-devel
+liblzfse-dev lzfse-devel
+liblzma-dev xz-devel
+libmtp-dev libmtp-devel
+libsmbclient-dev libsmbclient-devel
+libssh-dev libssh-devel
+libzip-dev libzip-devel
+libpam0g-dev pam-devel
+libcurl4-openssl-dev libcurl-devel
+libical-dev libical-devel
+libssl-dev openssl-devel
+libpsl-dev libpsl-devel
+libxml2-dev libxml2-devel
+libxslt1-dev libxslt-devel
+libsqlite3-dev sqlite-devel
+libepoxy-dev libepoxy-devel
+liblcms2-dev lcms2-devel
+libavif-dev libavif-devel
+libwoff-dev woff2-devel
+libcrypt-dev libxcrypt-devel
+
+# Qt 6. Fedora keeps the private headers in the same package as the public
+# ones, where Debian splits them in two.
+qt6-base-dev qt6-qtbase-devel
+qt6-base-private-dev qt6-qtbase-devel
+qt6-declarative-dev qt6-qtdeclarative-devel
+qt6-declarative-private-dev qt6-qtdeclarative-devel
+
+# Runtime services and data.
+accountsservice accountsservice
+acl acl
+adduser shadow-utils
+bluez bluez
+network-manager NetworkManager
+pipewire pipewire
+pipewire-pulse pipewire-pulseaudio
+wireplumber wireplumber
+upower upower
+gnome-keyring gnome-keyring
+libpam-gnome-keyring -
+polkitd polkit
+gsettings-desktop-schemas gsettings-desktop-schemas
+udisks2 udisks2
+fuse3 fuse3
+xdg-desktop-portal xdg-desktop-portal
+power-profiles-daemon power-profiles-daemon
+plymouth plymouth
+plymouth-label plymouth-plugin-label
+xwayland xorg-x11-server-Xwayland
+systemd-coredump systemd-coredump
+va-driver-all mesa-va-drivers
+va-driver mesa-va-drivers
+libjxl0.11 libjxl
+dosfstools dosfstools
+e2fsprogs e2fsprogs
+fdisk util-linux
+squashfs-tools squashfs-tools
+util-linux util-linux
+pipewire-bin pipewire
+
+# Fonts.
+fonts-inter rsms-inter-fonts
+fonts-noto-cjk google-noto-sans-cjk-ttc-fonts
+fonts-noto-color-emoji google-noto-color-emoji-fonts
+fonts-noto-core google-noto-sans-fonts
+fonts-noto-mono google-noto-sans-mono-fonts
+
+# Debian's virtual names do not exist on Fedora.
+x-terminal-emulator -
