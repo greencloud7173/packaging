@@ -248,7 +248,7 @@ write_spec() {
     fi
     echo
 
-    echo "Name:           %{name}"
+    echo "Name:           $source"
     echo "Version:        $version"
     echo "Release:        $release%{?dist}"
     echo "Summary:        $summary"
