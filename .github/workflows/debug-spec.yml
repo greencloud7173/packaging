@@ -1,0 +1,24 @@
+name: Debug spec
+on: workflow_dispatch
+jobs:
+  spec:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: packaging
+      - name: Generate the WebKit spec
+        run: |
+          git init --quiet cutefish-webkit
+          git -C cutefish-webkit -c user.email=a@b -c user.name=a commit --allow-empty -m init --quiet
+          docker run --rm -v "$PWD:/work" -w /work "fedora:44" \
+            bash -euo pipefail -c '
+              dnf install -y --setopt=install_weak_deps=False \
+                ca-certificates git gzip redhat-rpm-config rpm-build tar >/dev/null
+              git config --global --add safe.directory "*"
+              packaging/rpm/build.sh --snapshot cutefish-webkit 2>&1 | head -20 || true
+              echo ===SPEC===
+              cat out/rpm/SPECS/cutefish-webkit.spec
+              echo ===EXPANDED===
+              rpmspec -P out/rpm/SPECS/cutefish-webkit.spec | sed -n "/^%prep/,/^%files/p"
+            '
