@@ -1,0 +1,16 @@
+name: Debug ruby
+on: workflow_dispatch
+jobs:
+  ruby:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Query providers in Fedora 44
+        run: |
+          docker run --rm "fedora:44" bash -euo pipefail -c '
+            dnf -q makecache >/dev/null
+            dnf -q repoquery --available --whatprovides "*/json.so" "*/psych.so" || true
+            echo ===SEARCH===
+            dnf -q search --available psych json 2>/dev/null | grep -Ei "^(rubygem|ruby)" || true
+            echo ===DEFAULTGEMS===
+            dnf -q repoquery --available --requires ruby | sort || true
+          '
