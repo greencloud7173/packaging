@@ -20,5 +20,7 @@ jobs:
               echo ===SCRIPT===
               cat /tmp/out.txt
               echo ===SPEC===
-              sed -n "/^%build/,/^%files/p" out/rpm/SPECS/cutefish-webkit.spec
+              sed -n "/^%build/,/^%files/p" packaging/out/rpm/SPECS/cutefish-webkit.spec
+              echo ===EXPANDED===
+              rpmspec -P packaging/out/rpm/SPECS/cutefish-webkit.spec | sed -n "/^%build/,/^%files/p"
             '
