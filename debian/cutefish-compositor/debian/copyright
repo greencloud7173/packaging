@@ -7,7 +7,7 @@ Copyright: 2012-2023 The Chromium Authors
            2014-2021 The ChromiumOS Authors
            2026 Reion Wong <reionwong@gmail.com>
 License: BSD-3-Clause
-Comment: Files ported from Chromium keep their own notice (LICENSE.chromium);
+Comment: Files that follow Chromium's code keep its notice (LICENSE.chromium);
  the Xwayland window manager and selection bridge adapt sommelier
  (LICENSE.sommelier).
 
