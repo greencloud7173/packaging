@@ -186,6 +186,23 @@ declare -A BUILD_EXTRA=(
   [cutefish-webkit]="expat-devel"
 )
 
+# Everything a project needs to build, as Fedora package names: what its Debian
+# packaging lists, what the tools the spec uses need, and the extras above. Both
+# the spec and the install before the build read it, so the two cannot drift.
+build_requires() {
+  local project="$1"
+  control_packages "$project" Build-Depends Build-Depends-Indep
+  case "$(build_system "$project")" in
+    # Fedora's %cmake generates Ninja files, which needs ninja on the
+    # system whatever the project's own control file says.
+    cmake) printf '%s\n' gcc gcc-c++ make ninja-build ;;
+    cargo) printf '%s\n' gcc make ;;
+  esac
+  if [[ -n "${BUILD_EXTRA[$project]:-}" ]]; then
+    tr ' ' '\n' <<< "${BUILD_EXTRA[$project]}"
+  fi
+}
+
 # A project is native when its Debian source format says so, which is how the
 # metapackages are told apart: they have no upstream checkout to build.
 is_native() {
@@ -239,7 +256,7 @@ write_spec() {
   local control="$PACKAGING/debian/$project/debian/control"
   local spec="$OUT/SPECS/$source.spec"
   local system summary homepage architecture extra
-  local -a description body build_requires runtime_requires recommends
+  local -a description body requires runtime_requires recommends
   local -a patch_files
 
   system="$(build_system "$project")"
@@ -291,19 +308,10 @@ write_spec() {
     [[ "$architecture" == all ]] && echo "BuildArch:      noarch"
     echo
 
-    mapfile -t build_requires < <(control_packages "$project" Build-Depends Build-Depends-Indep | sort -u)
-    case "$system" in
-      # Fedora's %cmake generates Ninja files, which needs ninja on the
-      # system whatever the project's own control file says.
-      cmake) build_requires+=("gcc" "gcc-c++" "make" "ninja-build") ;;
-      cargo) build_requires+=("gcc" "make") ;;
-    esac
-    read -ra extra_requires <<< "${BUILD_EXTRA[$project]:-}"
-    build_requires+=(${extra_requires[@]+"${extra_requires[@]}"})
-    printf '%s\n' ${build_requires[@]+"${build_requires[@]}"} | sed '/^$/d' | sort -u \
+    mapfile -t requires < <(build_requires "$project" | sort -u)
+    printf '%s\n' ${requires[@]+"${requires[@]}"} | sed '/^$/d' \
       | while read -r name; do echo "BuildRequires:  $name"; done
     echo
-
     mapfile -t runtime_requires < <(control_packages "$project" Depends | sort -u)
     mapfile -t recommends < <(control_packages "$project" Recommends | sort -u)
     printf '%s\n' ${runtime_requires[@]+"${runtime_requires[@]}"} | sed '/^$/d' \
@@ -570,7 +578,7 @@ for project in "${PROJECTS[@]}"; do
   echo "==> [$project] $source $upstream-$release ($(build_system "$project"))"
 
   if [[ "$INSTALL" == true || "$DEPS" == true ]] && ! is_native "$project"; then
-    mapfile -t build_deps < <(control_packages "$project" Build-Depends Build-Depends-Indep | sort -u)
+    mapfile -t build_deps < <(build_requires "$project" | sort -u)
     if (( ${#build_deps[@]} )); then
       "${SUDO[@]}" dnf install -y --setopt=install_weak_deps=False "${build_deps[@]}"
     fi
