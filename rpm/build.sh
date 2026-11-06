@@ -179,6 +179,13 @@ declare -A CMAKE_EXTRA=(
   [cutefish-webkit]="-DPORT=Cutefish -DCMAKE_BUILD_TYPE=Release"
 )
 
+# Build dependencies Fedora needs and the Debian packaging does not list,
+# because Fedora's libraries are built with features Debian's are not.
+declare -A BUILD_EXTRA=(
+  # Skia draws the SVG fonts of the OpenType parts with expat.
+  [cutefish-webkit]="expat-devel"
+)
+
 # A project is native when its Debian source format says so, which is how the
 # metapackages are told apart: they have no upstream checkout to build.
 is_native() {
@@ -291,6 +298,8 @@ write_spec() {
       cmake) build_requires+=("gcc" "gcc-c++" "make" "ninja-build") ;;
       cargo) build_requires+=("gcc" "make") ;;
     esac
+    read -ra extra_requires <<< "${BUILD_EXTRA[$project]:-}"
+    build_requires+=(${extra_requires[@]+"${extra_requires[@]}"})
     printf '%s\n' ${build_requires[@]+"${build_requires[@]}"} | sed '/^$/d' | sort -u \
       | while read -r name; do echo "BuildRequires:  $name"; done
     echo
