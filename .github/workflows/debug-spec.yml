@@ -16,9 +16,9 @@ jobs:
               dnf install -y --setopt=install_weak_deps=False \
                 ca-certificates git gzip redhat-rpm-config rpm-build tar >/dev/null
               git config --global --add safe.directory "*"
-              packaging/rpm/build.sh --snapshot cutefish-webkit 2>&1 | head -20 || true
+              packaging/rpm/build.sh --snapshot cutefish-webkit > /tmp/out.txt 2>&1 || true
+              echo ===SCRIPT===
+              cat /tmp/out.txt
               echo ===SPEC===
-              cat out/rpm/SPECS/cutefish-webkit.spec
-              echo ===EXPANDED===
-              rpmspec -P out/rpm/SPECS/cutefish-webkit.spec | sed -n "/^%prep/,/^%files/p"
+              sed -n "/^%build/,/^%files/p" out/rpm/SPECS/cutefish-webkit.spec
             '
