@@ -573,9 +573,16 @@ for project in "${PROJECTS[@]}"; do
     write_spec "$project" "$source" "$upstream" "$release"
   fi
 
-  if [[ "$project" == cutefish-plymouth-theme ]]; then
+  if [[ "$project" == plymouth-theme ]]; then
     cp "$packaging/cutefish-plymouth-theme.cfg" "$OUT/SOURCES/"
   fi
+
+  # Source0 is the tarball write_sources makes; the rest are copied by hand, so
+  # a missing one would only be noticed by %install long after the build.
+  while read -r extra_source; do
+    [[ -f "$OUT/SOURCES/$extra_source" ]] \
+      || { echo "Error: $source names $extra_source, which is not in SOURCES" >&2; exit 1; }
+  done < <(sed -n 's/^Source[1-9][0-9]*: *//p' "$OUT/SPECS/$source.spec")
 
   log="$OUT/logs/$source.log"
   rpmbuild -bb --define "_topdir $OUT" "$OUT/SPECS/$source.spec" 2>&1 | tee "$log"

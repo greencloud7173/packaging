@@ -68,7 +68,10 @@ Fedora 44 packages are generated from the Debian packaging by `rpm/build.sh`,
 so there is nothing to write twice: `debian/<project>/debian/control` supplies
 the dependencies, the summary and the description of the spec, and
 `rpm/dependencies` and `rpm/licenses` translate the package names and hold the
-licences Fedora does not take from `debian/copyright`.
+licences Fedora does not take from `debian/copyright`, and `rpm/patches/<project>`
+holds the patches Fedora needs and Debian does not, such as the one for the Qt
+6.11 API that cutefish-qt-plugins predates. Every `*.patch` there is applied
+with `%autosetup`.
 
 Check out the projects as for Debian, then build, from the directory that
 holds them all, on Fedora itself or in its container:
