@@ -1,0 +1,21 @@
+Qt 6.11 dropped the QWindowSystemInterface::handleThemeChange(QWindow *)
+overload; the change now goes to every window from the platform side. Keep
+the loop for older Qt, which is what Debian still builds against.
+
+--- a/platformtheme/platformtheme.cpp
++++ b/platformtheme/platformtheme.cpp
+@@ -56,9 +56,14 @@
+             &PlatformTheme::onFontChanged);
+     connect(m_hints, &HintsSettings::iconThemeChanged, this, &PlatformTheme::onIconThemeChanged);
+     connect(m_hints, &HintsSettings::cursorThemeChanged, this, [] {
++#if QT_VERSION >= QT_VERSION_CHECK(6, 11, 0)
++        // Qt 6.11 sends the theme change to every window itself.
++        QWindowSystemInterface::handleThemeChange();
++#else
+         for (auto *window : qGuiApp->allWindows()) {
+             QWindowSystemInterface::handleThemeChange(window);
+         }
++#endif
+     });
+     connect(m_hints, &HintsSettings::darkModeChanged, this, [] {
+         QWindowSystemInterface::handleThemeChange();
