@@ -8,8 +8,6 @@ on:
       - web/**
       - .github/workflows/iso.yml
       - .github/workflows/pages.yml
-  schedule:
-    - cron: "0 18 * * *"
   workflow_dispatch:
 
 permissions:
@@ -46,14 +44,8 @@ jobs:
           done < versions
           cat commits
 
-          # The nightly run builds only when a commit moved since the last
-          # publish; a push or a manual run always builds.
+          # A push or a manual run always builds.
           changed=true
-          if [[ "$GITHUB_EVENT_NAME" == schedule ]] \
-             && curl -fsSL "https://download.cutefish.org/debian/dists/$SUITE/commits" | cmp -s - commits; then
-            changed=false
-            echo "Nothing changed since the last publish." >> "$GITHUB_STEP_SUMMARY"
-          fi
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
           {
             echo "commits<<EOF"
