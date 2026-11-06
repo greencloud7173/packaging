@@ -131,7 +131,10 @@ gsettings-desktop-schemas gsettings-desktop-schemas
 udisks2 udisks2
 fuse3 fuse3
 xdg-desktop-portal xdg-desktop-portal
-power-profiles-daemon power-profiles-daemon
+# Fedora ships two implementations, power-profiles-daemon and tuned-ppd, which
+# conflict with each other but both provide ppd-service; requiring either name
+# would make the package uninstallable beside the other.
+power-profiles-daemon ppd-service
 plymouth plymouth
 plymouth-label plymouth-plugin-label
 xwayland xorg-x11-server-Xwayland
