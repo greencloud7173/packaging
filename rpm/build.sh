@@ -196,10 +196,14 @@ patches() {
 # How a project builds: its Debian rules decide between CMake, Cargo, and
 # shipping files that are already in its checkout.
 build_system() {
-  local control="$PACKAGING/debian/$1/debian/control"
-  if control_field "$control" Build-Depends | grep -qw cargo; then
+  local control="$PACKAGING/debian/$1/debian/control" depends
+  # Read the field first: grep -q stops at its first match, and pipefail would
+  # then see the SIGPIPE control_field takes as the pipeline's exit status,
+  # which reads as "not cmake" and builds nothing.
+  depends="$(control_field "$control" Build-Depends)"
+  if grep -qw cargo <<< "$depends"; then
     echo cargo
-  elif control_field "$control" Build-Depends | grep -qw cmake; then
+  elif grep -qw cmake <<< "$depends"; then
     echo cmake
   else
     echo files
@@ -232,8 +236,8 @@ write_spec() {
   local -a patch_files
 
   system="$(build_system "$project")"
-  homepage="$(control_field "$control" Homepage | head -1 | sed 's/^ *//; s/ *$//')"
-  architecture="$(control_field "$control" Architecture | head -1 | sed 's/^ *//; s/ *$//')"
+  homepage="$(control_field "$control" Homepage | sed -n '1s/^ *//;1s/ *$//;1p')"
+  architecture="$(control_field "$control" Architecture | sed -n '1s/^ *//;1s/ *$//;1p')"
   mapfile -t description < <(control_field "$control" Description | sed 's/^ *//')
   summary="${description[0]:-CutefishOS $project}"
   body=("${description[@]:1}")
@@ -554,7 +558,7 @@ for project in "${PROJECTS[@]}"; do
   fi
 
   echo
-  echo "==> [$project] $source $upstream-$release"
+  echo "==> [$project] $source $upstream-$release ($(build_system "$project"))"
 
   if [[ "$INSTALL" == true || "$DEPS" == true ]] && ! is_native "$project"; then
     mapfile -t build_deps < <(control_packages "$project" Build-Depends Build-Depends-Indep | sort -u)
