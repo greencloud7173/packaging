@@ -131,7 +131,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: logs-${{ matrix.arch }}
-          path: packaging/out/rpm/logs
+          path: |
+            packaging/out/rpm/logs
+            packaging/out/rpm/SPECS
           if-no-files-found: ignore
           retention-days: 7
 
@@ -219,7 +221,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: webkit-logs-${{ matrix.arch }}
-          path: packaging/out/rpm/logs
+          path: |
+            packaging/out/rpm/logs
+            packaging/out/rpm/SPECS
           if-no-files-found: ignore
           retention-days: 7
 
@@ -227,7 +231,7 @@ jobs:
   # dependency that Fedora does not have or a broken script fails the run
   # rather than the user.
   install:
-    name: Install ${{ matrix.arch }}
+    name: Install
     needs: [build, webkit]
     runs-on: ${{ matrix.runner }}
     strategy:
