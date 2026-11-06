@@ -4,16 +4,18 @@ jobs:
   ruby:
     runs-on: ubuntu-24.04
     steps:
-      - name: Query ruby packaging in Fedora 44
+      - name: Query ruby gems in Fedora 44
         run: |
           docker run --rm "fedora:44" bash -euo pipefail -c '
             dnf -q makecache >/dev/null
-            echo "===PKGS==="
-            dnf -q repoquery --available "ruby*" "rubygem-json*" "rubygem-psych*" --qf "%{name}-%{version}-%{release}" | sort -u
-            echo "===RUBYINFO==="
-            dnf -q repoquery --available --info ruby
-            echo "===RUBYLIBSFILES==="
-            dnf -q repoquery --available -l ruby-libs | grep -Ei "json|psych|yaml" || true
-            echo "===RUBYFILES==="
-            dnf -q repoquery --available -l ruby | head -50
+            for cap in "rubygem(json)" "rubygem(psych)" "rubygem(yaml)"; do
+              echo "=== PROVIDES $cap ==="
+              dnf -q repoquery --available --whatprovides "$cap" --qf "%{name}\n" | sort -u
+            done
+            echo "=== ruby-default-gems files ==="
+            dnf -q repoquery --available -l ruby-default-gems | grep -E "json|psych" | head -20
+            echo "=== rubygem-psych files ==="
+            dnf -q repoquery --available -l rubygem-psych | head -20
+            echo "=== dry run install ==="
+            dnf install -y --setopt=install_weak_deps=False --downloadonly ruby-default-gems 2>&1 | tail -20
           '
