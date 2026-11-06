@@ -286,9 +286,11 @@ write_spec() {
     echo "%global _missing_build_ids_terminate_build 0"
     if [[ "$project" == cutefish-webkit ]]; then
       # With debug information and LTO the build outgrows the runners' memory
-      # and disk, as it does on Debian.
-      echo "%global optflags %(echo %{optflags} | sed -e 's/ -g / /g' -e 's/^-g //' -e 's/ -g\$//')"
+      # and disk, as it does on Debian. _lto_cflags has to come first: optflags
+      # expands it when optflags itself is defined, so setting it afterwards
+      # leaves the -flto that Fedora 44's optflags already carry in place.
       echo "%global _lto_cflags %{nil}"
+      echo "%global optflags %(echo %{optflags} | sed -e 's/ -g / /g' -e 's/^-g //' -e 's/ -g\$//')"
     fi
     echo
 
