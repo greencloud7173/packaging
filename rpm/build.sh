@@ -183,7 +183,9 @@ declare -A CMAKE_EXTRA=(
 # because Fedora's libraries are built with features Debian's are not.
 declare -A BUILD_EXTRA=(
   # Skia draws the SVG fonts of the OpenType parts with expat.
-  [cutefish-webkit]="expat-devel"
+  # Fedora keeps json and psych out of the ruby package, and the JavaScriptCore
+  # generators that run during the build load both.
+  [cutefish-webkit]="expat-devel rubygem-json rubygem-psych"
 )
 
 # Everything a project needs to build, as Fedora package names: what its Debian
