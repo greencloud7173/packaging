@@ -166,7 +166,8 @@ control_packages() {
     else
       fedora="$name"
     fi
-    echo "$fedora"
+    # One Debian package can need several Fedora ones.
+    tr ' ' '\n' <<< "$fedora"
   done < <(control_field "$PACKAGING/debian/$project/debian/control" "$@" \
     | sed -e 's/([^)]*)//g' -e 's/\[[^]]*\]//g' -e 's/<[^>]*>//g' -e 's/[,|]/ /g' \
     | tr -s ' \t' '\n' | sed '/^$/d')
